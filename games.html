@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kids Fun Zone</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+    font-family:'Comic Sans MS', cursive;
+    overflow-x:hidden;
+    color:#333;
+}
+
+#background{
+    position:fixed;
+    width:100%;
+    height:100%;
+    z-index:-1;
+}
+
+header{
+    text-align:center;
+    padding:20px;
+    font-size:32px;
+    font-weight:bold;
+    color:white;
+}
+
+nav{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+nav button{
+    margin:6px;
+    padding:12px 25px;
+    border:none;
+    border-radius:30px;
+    background:#ff6b81;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.section{display:none;padding:20px;}
+.active{display:block}
+
+.game-card{
+    max-width:600px;
+    margin:20px auto;
+    background:white;
+    padding:30px;
+    border-radius:30px;
+    box-shadow:0 15px 35px rgba(0,0,0,0.2);
+    text-align:center;
+}
+
+.game-card button{
+    margin:8px;
+    padding:10px 20px;
+    border:none;
+    border-radius:20px;
+    background:linear-gradient(45deg,#f6d365,#fda085);
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.reset-btn{
+    background:#1e90ff !important;
+    color:white;
+}
+
+input{
+    padding:10px;
+    border-radius:15px;
+    border:2px solid #66a6ff;
+    width:70%;
+}
+
+/* Balloon 2x Speed */
+.balloon{
+    width:70px;
+    height:90px;
+    border-radius:50%;
+    position:absolute;
+    cursor:pointer;
+    animation:floatUp 3s linear forwards;
+}
+
+@keyframes floatUp{
+    from{transform:translateY(100vh);}
+    to{transform:translateY(-30vh);}
+}
+
+/* Puzzle */
+#puzzleBoard{
+    display:grid;
+    grid-template-columns:repeat(3,100px);
+    gap:2px;
+    margin:15px auto;
+    width:306px;
+}
+
+.tile{
+    width:100px;
+    height:100px;
+    border-radius:10px;
+}
+
+@media(max-width:600px){
+    .game-card{width:95%;}
+}
+</style>
+</head>
+
+<body>
+
+<div id="background"></div>
+
+<header>🎮 Kids Fun Zone 🎈</header>
+
+<nav>
+<button onclick="showSection('home')">Home</button>
+<button onclick="showSection('quiz')">General Quiz</button>
+<button onclick="showSection('mathquiz')">Math Quiz</button>
+<button onclick="showSection('guess')">Guess</button>
+<button onclick="showSection('balloon')">Balloon</button>
+<button onclick="showSection('puzzle')">Puzzle</button>
+</nav>
+
+<!-- HOME -->
+<div id="home" class="section active">
+<div class="game-card">
+<h2>Welcome Kids! 🌟</h2>
+<p>Select a game and start learning & playing!</p>
+</div>
+</div>
+
+<!-- GENERAL QUIZ -->
+<div id="quiz" class="section">
+<div class="game-card">
+<h2>🧠 General Quiz</h2>
+<p id="quizNumber"></p>
+<p id="questionText"></p>
+<div id="options"></div>
+<p id="quizResult"></p>
+<p><b>Score: <span id="score">0</span></b></p>
+<button onclick="nextQuestion()">Next</button>
+<button class="reset-btn" onclick="resetQuiz()">Reset</button>
+</div>
+</div>
+
+<!-- MATH QUIZ -->
+<div id="mathquiz" class="section">
+<div class="game-card">
+<h2>➕ Math Quiz</h2>
+<p id="mathNumber"></p>
+<p id="mathQuestion"></p>
+<div id="mathOptions"></div>
+<p id="mathResult"></p>
+<p><b>Score: <span id="mathScore">0</span></b></p>
+<button onclick="nextMath()">Next</button>
+<button class="reset-btn" onclick="resetMath()">Reset</button>
+</div>
+</div>
+
+<!-- GUESS -->
+<div id="guess" class="section">
+<div class="game-card">
+<h2>🎲 Guess Number (1-100)</h2>
+<input type="number" id="guessInput">
+<br><br>
+<button onclick="checkGuess()">Guess</button>
+<p id="guessResult"></p>
+<button class="reset-btn" onclick="resetGuess()">Reset</button>
+</div>
+</div>
+
+<!-- BALLOON -->
+<div id="balloon" class="section">
+<div class="game-card">
+<h2>🎈 Color Balloon Game</h2>
+<p>Pop only <b id="targetColorText"></b> balloons!</p>
+<p id="balloonResult"></p>
+<button class="reset-btn" onclick="resetBalloonGame()">Reset</button>
+</div>
+</div>
+
+<!-- PUZZLE -->
+<div id="puzzle" class="section">
+<div class="game-card">
+<h2>🧩 Cartoon Puzzle</h2>
+<div id="puzzleBoard"></div>
+<p id="puzzleResult"></p>
+<button onclick="resetPuzzle()">Reset</button>
+<button onclick="nextPuzzleImage()">Next Image</button>
+</div>
+</div>
+
+<script>
+
+/* ======================
+   NAVIGATION
+   EVENT: click
+======================*/
+let balloonInterval=null;
+
+function showSection(id){
+document.querySelectorAll('.section').forEach(sec=>sec.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+
+if(id==="balloon"){ startBalloonGame(); }
+else{ stopBalloonGame(); }
+}
+
+/* ======================
+   GENERAL QUIZ
+   EVENTS: click
+======================*/
+let quizQuestions=[
+{q:"Which animal is King of Jungle?",o:["Lion","Dog","Cat","Elephant"],a:0},
+{q:"Which color is sky?",o:["Blue","Green","Red","Pink"],a:0},
+{q:"How many days in week?",o:["5","6","7","8"],a:2},
+{q:"Which is fruit?",o:["Carrot","Potato","Apple","Onion"],a:2},
+{q:"Which animal gives milk?",o:["Cow","Tiger","Lion","Dog"],a:0},
+{q:"Which planet we live on?",o:["Mars","Earth","Jupiter","Moon"],a:1},
+{q:"How many legs spider has?",o:["6","8","4","10"],a:1},
+{q:"Which is bird?",o:["Dog","Cat","Parrot","Cow"],a:2},
+{q:"Which is red fruit?",o:["Banana","Apple","Grapes","Orange"],a:1},
+{q:"Which season is cold?",o:["Summer","Winter","Rainy","Spring"],a:1}
+];
+
+let currentQuestion=0;
+let quizScore=0;
+
+function loadQuestion(){
+let q=quizQuestions[currentQuestion];
+document.getElementById("quizNumber").innerHTML="Question "+(currentQuestion+1)+" / 10";
+document.getElementById("questionText").innerHTML=q.q;
+let optionsDiv=document.getElementById("options");
+optionsDiv.innerHTML="";
+
+q.o.forEach((opt,index)=>{
+let btn=document.createElement("button");
+btn.innerText=opt;
+
+btn.onclick=function(){ // click event
+if(index===q.a){
+document.getElementById("quizResult").innerHTML="🎉 Correct!";
+quizScore++;
+}else{
+document.getElementById("quizResult").innerHTML="❌ Wrong!";
+}
+document.getElementById("score").innerText=quizScore;
+};
+optionsDiv.appendChild(btn);
+});
+}
+
+function nextQuestion(){ currentQuestion=(currentQuestion+1)%10; loadQuestion(); }
+function resetQuiz(){ quizScore=0; currentQuestion=0; document.getElementById("score").innerText=0; loadQuestion(); }
+loadQuestion();
+
+/* ======================
+   MATH QUIZ
+======================*/
+let mathQuestions=[];
+for(let i=0;i<10;i++){
+let a=Math.floor(Math.random()*20)+1;
+let b=Math.floor(Math.random()*20)+1;
+mathQuestions.push({q:a+" + "+b+" = ?",a:a+b});
+}
+
+let mathIndex=0;
+let mathScore=0;
+
+function loadMath(){
+let q=mathQuestions[mathIndex];
+document.getElementById("mathNumber").innerHTML="Question "+(mathIndex+1)+" / 10";
+document.getElementById("mathQuestion").innerHTML=q.q;
+
+let div=document.getElementById("mathOptions");
+div.innerHTML="";
+for(let i=0;i<4;i++){
+let btn=document.createElement("button");
+let val=q.a+Math.floor(Math.random()*5)-2;
+if(i===0) val=q.a;
+btn.innerText=val;
+
+btn.onclick=function(){ // click event
+if(val===q.a){
+document.getElementById("mathResult").innerHTML="🎉 Correct!";
+mathScore++;
+}else{
+document.getElementById("mathResult").innerHTML="❌ Wrong!";
+}
+document.getElementById("mathScore").innerText=mathScore;
+};
+div.appendChild(btn);
+}
+}
+
+function nextMath(){ mathIndex=(mathIndex+1)%10; loadMath(); }
+function resetMath(){ mathScore=0; mathIndex=0; document.getElementById("mathScore").innerText=0; loadMath(); }
+loadMath();
+
+/* ======================
+   GUESS NUMBER
+======================*/
+let randomNumber=Math.floor(Math.random()*100)+1;
+
+function checkGuess(){
+let user=parseInt(document.getElementById("guessInput").value);
+if(user===randomNumber){
+document.getElementById("guessResult").innerHTML="🎉 Correct!";
+randomNumber=Math.floor(Math.random()*100)+1;
+}else if(user>randomNumber){
+document.getElementById("guessResult").innerHTML="⬇ Too High!";
+}else{
+document.getElementById("guessResult").innerHTML="⬆ Too Low!";
+}
+}
+function resetGuess(){ document.getElementById("guessInput").value=""; document.getElementById("guessResult").innerHTML=""; }
+
+/* ======================
+   BALLOON GAME
+   EVENTS: click, setInterval, setTimeout
+======================*/
+let colors=["red","blue","green","purple","orange"];
+let targetColor="";
+
+function startBalloonGame(){
+targetColor=colors[Math.floor(Math.random()*colors.length)];
+document.getElementById("targetColorText").innerText=targetColor.toUpperCase();
+balloonInterval=setInterval(createBalloon,500);
+}
+
+function stopBalloonGame(){
+clearInterval(balloonInterval);
+document.querySelectorAll(".balloon").forEach(b=>b.remove());
+}
+
+function createBalloon(){
+let balloon=document.createElement("div");
+balloon.classList.add("balloon");
+let color=colors[Math.floor(Math.random()*colors.length)];
+balloon.style.backgroundColor=color;
+balloon.style.left=Math.random()*90+"vw";
+
+balloon.onclick=function(){ // click event
+if(color===targetColor){
+document.getElementById("balloonResult").innerHTML="🎉 Great!";
+}else{
+document.getElementById("balloonResult").innerHTML="❌ Wrong!";
+}
+balloon.remove();
+};
+
+setTimeout(()=>balloon.remove(),3000);
+document.body.appendChild(balloon);
+}
+
+function resetBalloonGame(){ stopBalloonGame(); startBalloonGame(); }
+
+/* ======================
+   PUZZLE GAME
+   EVENT: click
+======================*/
+let puzzleArray=[];
+let emptyIndex=8;
+let puzzleImages=["images/jsevents1.jpg","images/jsevents2.jpg","images/jsevents3.jpg","images/jsevents4.jpg","images/jsevents5.jpg"];
+let currentImageIndex=0;
+
+function initPuzzle(){
+puzzleArray=[0,1,2,3,4,5,6,7,8];
+puzzleArray.sort(()=>Math.random()-0.5);
+emptyIndex=puzzleArray.indexOf(8);
+renderPuzzle();
+}
+
+function renderPuzzle(){
+let board=document.getElementById("puzzleBoard");
+board.innerHTML="";
+puzzleArray.forEach((num,index)=>{
+let tile=document.createElement("div");
+tile.classList.add("tile");
+
+if(num!==8){
+tile.style.backgroundImage=`url('${puzzleImages[currentImageIndex]}')`;
+tile.style.backgroundSize="300px 300px";
+let x=(num%3)*-100;
+let y=Math.floor(num/3)*-100;
+tile.style.backgroundPosition=`${x}px ${y}px`;
+
+tile.onclick=function(){ moveTile(index); }; // click event
+}
+board.appendChild(tile);
+});
+}
+
+function moveTile(index){
+let row=Math.floor(index/3);
+let col=index%3;
+let emptyRow=Math.floor(emptyIndex/3);
+let emptyCol=emptyIndex%3;
+
+if(Math.abs(row-emptyRow)+Math.abs(col-emptyCol)===1){
+[puzzleArray[index],puzzleArray[emptyIndex]]=[puzzleArray[emptyIndex],puzzleArray[index]];
+emptyIndex=index;
+renderPuzzle();
+}
+}
+
+function resetPuzzle(){ initPuzzle(); }
+function nextPuzzleImage(){ currentImageIndex=(currentImageIndex+1)%puzzleImages.length; initPuzzle(); }
+
+initPuzzle();
+
+</script>
+
+<!-- VANTA BACKGROUND -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.birds.min.js"></script>
+
+<script>
+VANTA.BIRDS({
+el:"#background",
+mouseControls:true,
+touchControls:true,
+gyroControls:false,
+minHeight:200,
+minWidth:200,
+scale:1,
+scaleMobile:1
+})
+</script>
+
+</body>
+</html>
